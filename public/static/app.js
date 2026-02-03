@@ -553,6 +553,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Generate report button
   document.getElementById('generate-report-btn').addEventListener('click', loadAdminReports);
 
+  // Add buttons for admin panel
+  document.getElementById('add-sector-btn').addEventListener('click', addSector);
+  document.getElementById('add-task-btn').addEventListener('click', addTask);
+  document.getElementById('invite-user-btn').addEventListener('click', inviteUser);
+
   // Check if already logged in
   if (state.token) {
     try {
@@ -577,27 +582,526 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 });
 
-// Placeholder functions for admin actions
-function editSector(id) {
-  alert('Editar setor ' + id + ' - Funcionalidade a ser implementada');
+// Modal functions
+function createModal(title, content) {
+  const modal = document.createElement('div');
+  modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+  modal.innerHTML = `
+    <div class="bg-white rounded-xl shadow-2xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+      <div class="gradient-bg text-white p-6 rounded-t-xl flex justify-between items-center">
+        <h3 class="text-xl font-bold">${title}</h3>
+        <button onclick="this.closest('.fixed').remove()" class="text-white hover:text-gray-200">
+          <i class="fas fa-times text-2xl"></i>
+        </button>
+      </div>
+      <div class="p-6">
+        ${content}
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  return modal;
+}
+
+// Sector CRUD functions
+function addSector() {
+  const content = `
+    <form id="sector-form" class="space-y-4">
+      <div>
+        <label class="block text-sm font-medium mb-2">Nome *</label>
+        <input type="text" name="name" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-600">
+      </div>
+      <div>
+        <label class="block text-sm font-medium mb-2">Descrição</label>
+        <textarea name="description" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-600" rows="3"></textarea>
+      </div>
+      <div>
+        <label class="block text-sm font-medium mb-2">Ícone (emoji)</label>
+        <input type="text" name="icon" placeholder="🍳" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-600">
+      </div>
+      <div>
+        <label class="block text-sm font-medium mb-2">Cor (hex)</label>
+        <input type="color" name="color" value="#667eea" class="w-full h-10 border rounded-lg">
+      </div>
+      <div>
+        <label class="block text-sm font-medium mb-2">Ordem</label>
+        <input type="number" name="order_number" value="0" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-600">
+      </div>
+      <div class="flex space-x-3">
+        <button type="submit" class="flex-1 gradient-bg text-white py-2 rounded-lg font-semibold hover:opacity-90">
+          <i class="fas fa-save mr-2"></i>Salvar
+        </button>
+        <button type="button" onclick="this.closest('.fixed').remove()" class="flex-1 bg-gray-300 text-gray-700 py-2 rounded-lg font-semibold hover:bg-gray-400">
+          Cancelar
+        </button>
+      </div>
+    </form>
+  `;
+  
+  const modal = createModal('Novo Setor', content);
+  
+  document.getElementById('sector-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const data = {
+      name: formData.get('name'),
+      description: formData.get('description'),
+      icon: formData.get('icon'),
+      color: formData.get('color'),
+      order_number: parseInt(formData.get('order_number'))
+    };
+    
+    try {
+      showLoading();
+      await apiCall('/sectors', { method: 'POST', body: JSON.stringify(data) });
+      modal.remove();
+      await loadAdminSectors();
+      alert('Setor criado com sucesso!');
+    } catch (error) {
+      alert('Erro ao criar setor: ' + error.message);
+    } finally {
+      hideLoading();
+    }
+  });
+}
+
+async function editSector(id) {
+  try {
+    showLoading();
+    const sector = await apiCall(`/sectors/${id}`);
+    hideLoading();
+    
+    const content = `
+      <form id="sector-form" class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium mb-2">Nome *</label>
+          <input type="text" name="name" value="${sector.name}" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-600">
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-2">Descrição</label>
+          <textarea name="description" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-600" rows="3">${sector.description || ''}</textarea>
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-2">Ícone (emoji)</label>
+          <input type="text" name="icon" value="${sector.icon || ''}" placeholder="🍳" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-600">
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-2">Cor (hex)</label>
+          <input type="color" name="color" value="${sector.color || '#667eea'}" class="w-full h-10 border rounded-lg">
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-2">Ordem</label>
+          <input type="number" name="order_number" value="${sector.order_number}" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-600">
+        </div>
+        <div class="flex space-x-3">
+          <button type="submit" class="flex-1 gradient-bg text-white py-2 rounded-lg font-semibold hover:opacity-90">
+            <i class="fas fa-save mr-2"></i>Salvar
+          </button>
+          <button type="button" onclick="this.closest('.fixed').remove()" class="flex-1 bg-gray-300 text-gray-700 py-2 rounded-lg font-semibold hover:bg-gray-400">
+            Cancelar
+          </button>
+        </div>
+      </form>
+    `;
+    
+    const modal = createModal('Editar Setor', content);
+    
+    document.getElementById('sector-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const formData = new FormData(e.target);
+      const data = {
+        name: formData.get('name'),
+        description: formData.get('description'),
+        icon: formData.get('icon'),
+        color: formData.get('color'),
+        order_number: parseInt(formData.get('order_number'))
+      };
+      
+      try {
+        showLoading();
+        await apiCall(`/sectors/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+        modal.remove();
+        await loadAdminSectors();
+        alert('Setor atualizado com sucesso!');
+      } catch (error) {
+        alert('Erro ao atualizar setor: ' + error.message);
+      } finally {
+        hideLoading();
+      }
+    });
+  } catch (error) {
+    hideLoading();
+    alert('Erro ao carregar setor: ' + error.message);
+  }
 }
 
 function deleteSector(id) {
-  if (confirm('Tem certeza que deseja excluir este setor?')) {
+  if (confirm('Tem certeza que deseja excluir este setor? Todas as tarefas associadas serão excluídas.')) {
     apiCall(`/sectors/${id}`, { method: 'DELETE' })
-      .then(() => loadAdminSectors())
+      .then(() => {
+        loadAdminSectors();
+        alert('Setor excluído com sucesso!');
+      })
       .catch(err => alert('Erro ao excluir: ' + err.message));
   }
 }
 
-function editTask(id) {
-  alert('Editar tarefa ' + id + ' - Funcionalidade a ser implementada');
+// Task CRUD functions
+async function addTask() {
+  try {
+    showLoading();
+    const sectors = await apiCall('/sectors');
+    hideLoading();
+    
+    const content = `
+      <form id="task-form" class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium mb-2">Setor *</label>
+          <select name="sector_id" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-600">
+            <option value="">Selecione um setor</option>
+            ${sectors.map(s => `<option value="${s.id}">${s.name}</option>`).join('')}
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-2">Tipo *</label>
+          <select name="type" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-600">
+            <option value="opening">Abertura</option>
+            <option value="general">Geral</option>
+            <option value="closing">Fechamento</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-2">Título *</label>
+          <input type="text" name="title" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-600">
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-2">Descrição</label>
+          <textarea name="description" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-600" rows="3"></textarea>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="flex items-center space-x-2">
+              <input type="checkbox" name="is_required" class="h-4 w-4 text-purple-600 rounded">
+              <span class="text-sm font-medium">Tarefa Obrigatória</span>
+            </label>
+          </div>
+          <div>
+            <label class="flex items-center space-x-2">
+              <input type="checkbox" name="requires_photo" class="h-4 w-4 text-purple-600 rounded">
+              <span class="text-sm font-medium">Requer Foto</span>
+            </label>
+          </div>
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-2">Tempo Estimado (minutos)</label>
+          <input type="number" name="estimated_time" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-600">
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-2">Ordem</label>
+          <input type="number" name="order_number" value="0" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-600">
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-2">Dias da Semana</label>
+          <div class="grid grid-cols-4 gap-2">
+            <label class="flex items-center space-x-1">
+              <input type="checkbox" name="days" value="0" checked class="rounded">
+              <span class="text-sm">Dom</span>
+            </label>
+            <label class="flex items-center space-x-1">
+              <input type="checkbox" name="days" value="1" checked class="rounded">
+              <span class="text-sm">Seg</span>
+            </label>
+            <label class="flex items-center space-x-1">
+              <input type="checkbox" name="days" value="2" checked class="rounded">
+              <span class="text-sm">Ter</span>
+            </label>
+            <label class="flex items-center space-x-1">
+              <input type="checkbox" name="days" value="3" checked class="rounded">
+              <span class="text-sm">Qua</span>
+            </label>
+            <label class="flex items-center space-x-1">
+              <input type="checkbox" name="days" value="4" checked class="rounded">
+              <span class="text-sm">Qui</span>
+            </label>
+            <label class="flex items-center space-x-1">
+              <input type="checkbox" name="days" value="5" checked class="rounded">
+              <span class="text-sm">Sex</span>
+            </label>
+            <label class="flex items-center space-x-1">
+              <input type="checkbox" name="days" value="6" checked class="rounded">
+              <span class="text-sm">Sáb</span>
+            </label>
+          </div>
+        </div>
+        <div class="flex space-x-3">
+          <button type="submit" class="flex-1 gradient-bg text-white py-2 rounded-lg font-semibold hover:opacity-90">
+            <i class="fas fa-save mr-2"></i>Salvar
+          </button>
+          <button type="button" onclick="this.closest('.fixed').remove()" class="flex-1 bg-gray-300 text-gray-700 py-2 rounded-lg font-semibold hover:bg-gray-400">
+            Cancelar
+          </button>
+        </div>
+      </form>
+    `;
+    
+    const modal = createModal('Nova Tarefa', content);
+    
+    document.getElementById('task-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const formData = new FormData(e.target);
+      const days = Array.from(formData.getAll('days')).map(d => parseInt(d));
+      
+      const data = {
+        sector_id: parseInt(formData.get('sector_id')),
+        type: formData.get('type'),
+        title: formData.get('title'),
+        description: formData.get('description'),
+        is_required: formData.get('is_required') === 'on',
+        requires_photo: formData.get('requires_photo') === 'on',
+        estimated_time: formData.get('estimated_time') ? parseInt(formData.get('estimated_time')) : null,
+        order_number: parseInt(formData.get('order_number')),
+        days_of_week: JSON.stringify(days)
+      };
+      
+      try {
+        showLoading();
+        await apiCall('/tasks', { method: 'POST', body: JSON.stringify(data) });
+        modal.remove();
+        await loadAdminTasks();
+        alert('Tarefa criada com sucesso!');
+      } catch (error) {
+        alert('Erro ao criar tarefa: ' + error.message);
+      } finally {
+        hideLoading();
+      }
+    });
+  } catch (error) {
+    hideLoading();
+    alert('Erro ao carregar setores: ' + error.message);
+  }
+}
+
+async function editTask(id) {
+  try {
+    showLoading();
+    const [task, sectors] = await Promise.all([
+      apiCall(`/tasks/${id}`),
+      apiCall('/sectors')
+    ]);
+    hideLoading();
+    
+    const days = JSON.parse(task.days_of_week || '[0,1,2,3,4,5,6]');
+    
+    const content = `
+      <form id="task-form" class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium mb-2">Setor *</label>
+          <select name="sector_id" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-600">
+            ${sectors.map(s => `<option value="${s.id}" ${s.id === task.sector_id ? 'selected' : ''}>${s.name}</option>`).join('')}
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-2">Tipo *</label>
+          <select name="type" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-600">
+            <option value="opening" ${task.type === 'opening' ? 'selected' : ''}>Abertura</option>
+            <option value="general" ${task.type === 'general' ? 'selected' : ''}>Geral</option>
+            <option value="closing" ${task.type === 'closing' ? 'selected' : ''}>Fechamento</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-2">Título *</label>
+          <input type="text" name="title" value="${task.title}" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-600">
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-2">Descrição</label>
+          <textarea name="description" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-600" rows="3">${task.description || ''}</textarea>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="flex items-center space-x-2">
+              <input type="checkbox" name="is_required" ${task.is_required ? 'checked' : ''} class="h-4 w-4 text-purple-600 rounded">
+              <span class="text-sm font-medium">Tarefa Obrigatória</span>
+            </label>
+          </div>
+          <div>
+            <label class="flex items-center space-x-2">
+              <input type="checkbox" name="requires_photo" ${task.requires_photo ? 'checked' : ''} class="h-4 w-4 text-purple-600 rounded">
+              <span class="text-sm font-medium">Requer Foto</span>
+            </label>
+          </div>
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-2">Tempo Estimado (minutos)</label>
+          <input type="number" name="estimated_time" value="${task.estimated_time || ''}" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-600">
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-2">Ordem</label>
+          <input type="number" name="order_number" value="${task.order_number}" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-600">
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-2">Dias da Semana</label>
+          <div class="grid grid-cols-4 gap-2">
+            <label class="flex items-center space-x-1">
+              <input type="checkbox" name="days" value="0" ${days.includes(0) ? 'checked' : ''} class="rounded">
+              <span class="text-sm">Dom</span>
+            </label>
+            <label class="flex items-center space-x-1">
+              <input type="checkbox" name="days" value="1" ${days.includes(1) ? 'checked' : ''} class="rounded">
+              <span class="text-sm">Seg</span>
+            </label>
+            <label class="flex items-center space-x-1">
+              <input type="checkbox" name="days" value="2" ${days.includes(2) ? 'checked' : ''} class="rounded">
+              <span class="text-sm">Ter</span>
+            </label>
+            <label class="flex items-center space-x-1">
+              <input type="checkbox" name="days" value="3" ${days.includes(3) ? 'checked' : ''} class="rounded">
+              <span class="text-sm">Qua</span>
+            </label>
+            <label class="flex items-center space-x-1">
+              <input type="checkbox" name="days" value="4" ${days.includes(4) ? 'checked' : ''} class="rounded">
+              <span class="text-sm">Qui</span>
+            </label>
+            <label class="flex items-center space-x-1">
+              <input type="checkbox" name="days" value="5" ${days.includes(5) ? 'checked' : ''} class="rounded">
+              <span class="text-sm">Sex</span>
+            </label>
+            <label class="flex items-center space-x-1">
+              <input type="checkbox" name="days" value="6" ${days.includes(6) ? 'checked' : ''} class="rounded">
+              <span class="text-sm">Sáb</span>
+            </label>
+          </div>
+        </div>
+        <div class="flex space-x-3">
+          <button type="submit" class="flex-1 gradient-bg text-white py-2 rounded-lg font-semibold hover:opacity-90">
+            <i class="fas fa-save mr-2"></i>Salvar
+          </button>
+          <button type="button" onclick="this.closest('.fixed').remove()" class="flex-1 bg-gray-300 text-gray-700 py-2 rounded-lg font-semibold hover:bg-gray-400">
+            Cancelar
+          </button>
+        </div>
+      </form>
+    `;
+    
+    const modal = createModal('Editar Tarefa', content);
+    
+    document.getElementById('task-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const formData = new FormData(e.target);
+      const days = Array.from(formData.getAll('days')).map(d => parseInt(d));
+      
+      const data = {
+        sector_id: parseInt(formData.get('sector_id')),
+        type: formData.get('type'),
+        title: formData.get('title'),
+        description: formData.get('description'),
+        is_required: formData.get('is_required') === 'on',
+        requires_photo: formData.get('requires_photo') === 'on',
+        estimated_time: formData.get('estimated_time') ? parseInt(formData.get('estimated_time')) : null,
+        order_number: parseInt(formData.get('order_number')),
+        days_of_week: JSON.stringify(days)
+      };
+      
+      try {
+        showLoading();
+        await apiCall(`/tasks/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+        modal.remove();
+        await loadAdminTasks();
+        alert('Tarefa atualizada com sucesso!');
+      } catch (error) {
+        alert('Erro ao atualizar tarefa: ' + error.message);
+      } finally {
+        hideLoading();
+      }
+    });
+  } catch (error) {
+    hideLoading();
+    alert('Erro ao carregar tarefa: ' + error.message);
+  }
 }
 
 function deleteTask(id) {
   if (confirm('Tem certeza que deseja excluir esta tarefa?')) {
     apiCall(`/tasks/${id}`, { method: 'DELETE' })
-      .then(() => loadAdminTasks())
+      .then(() => {
+        loadAdminTasks();
+        alert('Tarefa excluída com sucesso!');
+      })
       .catch(err => alert('Erro ao excluir: ' + err.message));
   }
+}
+
+// User invite function
+function inviteUser() {
+  const content = `
+    <form id="invite-form" class="space-y-4">
+      <div>
+        <label class="block text-sm font-medium mb-2">Email *</label>
+        <input type="email" name="email" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-600" placeholder="usuario@email.com">
+      </div>
+      <div>
+        <label class="block text-sm font-medium mb-2">Função *</label>
+        <select name="role" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-600">
+          <option value="employee">Funcionário</option>
+          <option value="admin">Administrador</option>
+        </select>
+      </div>
+      <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <p class="text-sm text-blue-800">
+          <i class="fas fa-info-circle mr-2"></i>
+          Um convite será enviado para o email informado. O link de convite expira em 7 dias.
+        </p>
+      </div>
+      <div class="flex space-x-3">
+        <button type="submit" class="flex-1 gradient-bg text-white py-2 rounded-lg font-semibold hover:opacity-90">
+          <i class="fas fa-envelope mr-2"></i>Enviar Convite
+        </button>
+        <button type="button" onclick="this.closest('.fixed').remove()" class="flex-1 bg-gray-300 text-gray-700 py-2 rounded-lg font-semibold hover:bg-gray-400">
+          Cancelar
+        </button>
+      </div>
+    </form>
+  `;
+  
+  const modal = createModal('Convidar Usuário', content);
+  
+  document.getElementById('invite-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const data = {
+      email: formData.get('email'),
+      role: formData.get('role')
+    };
+    
+    try {
+      showLoading();
+      const result = await apiCall('/users/invite', { method: 'POST', body: JSON.stringify(data) });
+      modal.remove();
+      
+      // Show invitation link
+      const linkModal = createModal('Convite Criado', `
+        <div class="space-y-4">
+          <p class="text-green-600 font-semibold">
+            <i class="fas fa-check-circle mr-2"></i>
+            Convite criado com sucesso!
+          </p>
+          <div class="bg-gray-100 p-4 rounded-lg">
+            <p class="text-sm font-medium mb-2">Link de Convite:</p>
+            <input type="text" value="${window.location.origin}${result.invitation_link}" readonly class="w-full px-3 py-2 bg-white border rounded text-sm">
+          </div>
+          <p class="text-sm text-gray-600">
+            Compartilhe este link com o usuário. Válido por 7 dias.
+          </p>
+          <button onclick="this.closest('.fixed').remove()" class="w-full gradient-bg text-white py-2 rounded-lg font-semibold hover:opacity-90">
+            OK
+          </button>
+        </div>
+      `);
+      
+      await loadAdminUsers();
+    } catch (error) {
+      alert('Erro ao criar convite: ' + error.message);
+    } finally {
+      hideLoading();
+    }
+  });
 }
