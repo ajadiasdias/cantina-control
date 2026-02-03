@@ -1,6 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "webapp",
+  "name": "cantina-control",
   "compatibility_date": "2026-02-03",
   "pages_build_output_dir": "./dist",
   "compatibility_flags": [
@@ -9,14 +9,8 @@
   "d1_databases": [
     {
       "binding": "DB",
-      "database_name": "webapp-production",
-      "database_id": "local-db-for-development"
-    }
-  ],
-  "r2_buckets": [
-    {
-      "binding": "R2",
-      "bucket_name": "webapp-uploads"
+      "database_name": "cantina-control-production",
+      "database_id": "ae1c5ea2-6d7e-491e-9824-2f39cf8e095c"
     }
   ]
 }
