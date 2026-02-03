@@ -1105,3 +1105,27 @@ function inviteUser() {
     }
   });
 }
+
+
+// Event listener for registration requests back button
+document.addEventListener('DOMContentLoaded', () => {
+  const regBackBtn = document.getElementById('admin-registrations-back-btn');
+  if (regBackBtn) {
+    regBackBtn.addEventListener('click', () => {
+      showView('admin-view');
+    });
+  }
+  
+  // Tab switching for registration requests
+  document.addEventListener('click', (e) => {
+    if (e.target.closest('.registration-tab-btn')) {
+      const btn = e.target.closest('.registration-tab-btn');
+      document.querySelectorAll('.registration-tab-btn').forEach(b => {
+        b.classList.remove('tab-active', 'border-purple-600', 'text-purple-600');
+        b.classList.add('border-transparent', 'text-gray-500');
+      });
+      btn.classList.add('tab-active', 'border-purple-600', 'text-purple-600');
+      btn.classList.remove('border-transparent', 'text-gray-500');
+    }
+  });
+});

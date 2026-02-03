@@ -10,6 +10,7 @@ import tasks from './routes/tasks';
 import dashboard from './routes/dashboard';
 import reports from './routes/reports';
 import users from './routes/users';
+import registrations from './routes/registrations';
 
 const app = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
@@ -23,6 +24,7 @@ app.route('/api/tasks', tasks);
 app.route('/api/dashboard', dashboard);
 app.route('/api/reports', reports);
 app.route('/api/users', users);
+app.route('/api/registrations', registrations);
 
 // Serve static files
 app.use('/static/*', serveStatic({ root: './public' }));
@@ -105,6 +107,62 @@ app.get('/', (c) => {
                         </button>
                         <div id="login-error" class="hidden text-red-600 text-sm text-center"></div>
                     </form>
+                    <div class="mt-6 text-center">
+                        <p class="text-gray-600">Não tem uma conta?</p>
+                        <button onclick="showRegisterScreen()" class="text-purple-600 hover:text-purple-700 font-semibold mt-2">
+                            Solicitar Acesso
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Register Screen -->
+        <div id="register-screen" class="hidden min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+            <div class="max-w-md w-full space-y-8">
+                <div class="text-center">
+                    <i class="fas fa-user-plus text-6xl text-purple-600 mb-4"></i>
+                    <h2 class="text-3xl font-bold text-gray-900">Solicitar Acesso</h2>
+                    <p class="mt-2 text-gray-600">Preencha o formulário abaixo</p>
+                </div>
+                <div class="bg-white p-8 rounded-xl shadow-lg">
+                    <form id="register-form" onsubmit="handleRegister(event)" class="space-y-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Nome Completo</label>
+                            <input type="text" name="name" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent" placeholder="Seu nome">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">E-mail</label>
+                            <input type="email" name="email" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent" placeholder="seu@email.com">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Senha</label>
+                            <input type="password" name="password" required minlength="6" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent" placeholder="••••••••">
+                            <p class="text-xs text-gray-500 mt-1">Mínimo de 6 caracteres</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Confirmar Senha</label>
+                            <input type="password" name="confirmPassword" required minlength="6" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent" placeholder="••••••••">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Nível de Acesso Solicitado</label>
+                            <select name="requestedRole" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent">
+                                <option value="employee">Funcionário</option>
+                                <option value="manager">Gestor</option>
+                            </select>
+                            <p class="text-xs text-gray-500 mt-1">O administrador irá revisar sua solicitação</p>
+                        </div>
+                        <button type="submit" class="w-full gradient-bg text-white py-3 rounded-lg font-semibold hover:opacity-90 transition">
+                            <i class="fas fa-paper-plane mr-2"></i>Enviar Solicitação
+                        </button>
+                        <div id="register-error" class="hidden text-red-600 text-sm text-center"></div>
+                        <div id="register-success" class="hidden text-green-600 text-sm text-center"></div>
+                    </form>
+                    <div class="mt-6 text-center">
+                        <button onclick="showLoginScreen()" class="text-purple-600 hover:text-purple-700 font-semibold">
+                            <i class="fas fa-arrow-left mr-1"></i>Voltar ao Login
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -228,6 +286,9 @@ app.get('/', (c) => {
                             <button class="admin-tab-btn py-4 px-1" data-tab="users">
                                 <i class="fas fa-users mr-2"></i>Usuários
                             </button>
+                            <button onclick="openRegistrationRequests()" class="py-4 px-1 text-gray-700 hover:text-purple-600 transition">
+                                <i class="fas fa-user-clock mr-2"></i>Solicitações
+                            </button>
                             <button class="admin-tab-btn py-4 px-1" data-tab="reports">
                                 <i class="fas fa-chart-bar mr-2"></i>Relatórios
                             </button>
@@ -349,6 +410,44 @@ app.get('/', (c) => {
             </div>
         </div>
 
+        <!-- Admin Registration Requests View -->
+        <div id="admin-registrations-view" class="hidden max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div class="mb-6">
+                <button id="admin-registrations-back-btn" class="text-purple-600 hover:text-purple-700 font-semibold">
+                    <i class="fas fa-arrow-left mr-2"></i>Voltar ao Painel Admin
+                </button>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-2xl font-bold text-gray-900">
+                        <i class="fas fa-user-clock mr-2"></i>Solicitações de Acesso
+                    </h2>
+                </div>
+
+                <!-- Tabs -->
+                <div class="border-b border-gray-200 mb-6">
+                    <nav class="flex space-x-8">
+                        <button onclick="loadRegistrationRequests('pending')" class="registration-tab-btn tab-active py-4 px-1 border-b-2 font-medium text-sm" data-status="pending">
+                            Pendentes
+                        </button>
+                        <button onclick="loadRegistrationRequests('approved')" class="registration-tab-btn py-4 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300" data-status="approved">
+                            Aprovadas
+                        </button>
+                        <button onclick="loadRegistrationRequests('rejected')" class="registration-tab-btn py-4 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300" data-status="rejected">
+                            Rejeitadas
+                        </button>
+                    </nav>
+                </div>
+
+                <!-- Registration Requests List -->
+                <div id="registration-requests-list" class="space-y-4">
+                    <!-- Requests will be loaded here -->
+                </div>
+            </div>
+        </div>
+
+        <script src="/static/registration.js"></script>
         <script src="/static/app.js"></script>
     </body>
     </html>

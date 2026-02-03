@@ -23,11 +23,16 @@ export async function authMiddleware(
 
   // Fetch user from database
   const user = await c.env.DB.prepare(
-    'SELECT id, email, name, role, created_at, updated_at FROM users WHERE id = ?'
+    'SELECT id, email, name, role, status, created_at, updated_at FROM users WHERE id = ?'
   ).bind(decoded.userId).first();
 
   if (!user) {
     return c.json({ error: 'User not found' }, 401);
+  }
+
+  // Check if user is active
+  if (user.status && user.status !== 'active') {
+    return c.json({ error: 'Account is not active' }, 403);
   }
 
   c.set('user', user as any);
@@ -46,3 +51,21 @@ export async function adminMiddleware(
 
   await next();
 }
+
+export async function managerOrAdminMiddleware(
+  c: Context<{ Bindings: Bindings; Variables: Variables }>,
+  next: Next
+) {
+  const user = c.get('user');
+  
+  if (user.role !== 'admin' && user.role !== 'manager') {
+    return c.json({ error: 'Manager or Admin access required' }, 403);
+  }
+
+  await next();
+}
+
+// Aliases for convenience
+export const requireAuth = authMiddleware;
+export const requireAdmin = adminMiddleware;
+export const requireManagerOrAdmin = managerOrAdminMiddleware;
