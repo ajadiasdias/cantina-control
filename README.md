@@ -10,9 +10,13 @@ O **Cantina Control** é uma aplicação web moderna e eficiente para gerenciar 
 
 ### 👤 Autenticação e Usuários
 - ✅ Login seguro com JWT
-- ✅ Sistema de convites para novos usuários
-- ✅ Dois níveis de acesso: Admin e Funcionário
+- ✅ **NOVO:** Sistema de registro de usuários com aprovação administrativa
+- ✅ **NOVO:** Solicitação de acesso (request-access)
+- ✅ **NOVO:** Painel de aprovação/rejeição de solicitações
+- ✅ Sistema de convites para novos usuários (método tradicional)
+- ✅ **NOVO:** Três níveis de acesso: Admin, Gestor e Funcionário
 - ✅ Gerenciamento de perfil
+- ✅ Validação de status de conta (active, pending, rejected)
 
 ### 📊 Dashboard
 - ✅ Visão geral das tarefas do dia
@@ -52,9 +56,12 @@ O **Cantina Control** é uma aplicação web moderna e eficiente para gerenciar 
 
 #### 👥 Gerenciamento de Usuários
 - ✅ **Visualizar todos os usuários** cadastrados
-- ✅ **Convidar novos usuários** por email
+- ✅ **NOVO:** Gerenciar solicitações de acesso (pendentes, aprovadas, rejeitadas)
+- ✅ **NOVO:** Aprovar solicitações com escolha de nível de acesso
+- ✅ **NOVO:** Rejeitar solicitações com motivo
+- ✅ **Convidar novos usuários** por email (método tradicional)
 - ✅ **Sistema de convites** com token único (válido 7 dias)
-- ✅ **Escolher função** (Admin ou Funcionário)
+- ✅ **Escolher função** (Admin, Gestor ou Funcionário)
 - ✅ **Link de convite** gerado automaticamente
 
 #### 📊 Relatórios
@@ -87,11 +94,12 @@ O **Cantina Control** é uma aplicação web moderna e eficiente para gerenciar 
 ## 📦 Estrutura do Banco de Dados
 
 ### Tabelas Principais
-- **users** - Usuários do sistema (admins e funcionários)
+- **users** - Usuários do sistema (admins, gestores e funcionários) com status
 - **sectors** - Setores da cantina (Cozinha, Pizzaria, etc)
 - **tasks** - Tarefas configuradas por setor
 - **task_completions** - Registro de tarefas concluídas
 - **invitations** - Convites pendentes para novos usuários
+- **registration_requests** - **NOVO:** Solicitações de acesso de novos usuários
 
 ## 🔧 Instalação e Configuração
 
@@ -219,14 +227,54 @@ O sistema vem com 5 setores pré-configurados:
 
 Total: **33 tarefas** distribuídas entre os setores
 
+## 🆕 Sistema de Registro de Usuários
+
+### Como Funciona
+
+#### Para Novos Usuários:
+1. Acesse a aplicação
+2. Clique em "Solicitar Acesso" na tela de login
+3. Preencha o formulário:
+   - Nome completo
+   - E-mail
+   - Senha (mínimo 6 caracteres)
+   - Nível desejado: Funcionário ou Gestor
+4. Aguarde aprovação do administrador
+
+#### Para Administradores:
+1. Acesse o painel Admin
+2. Clique em "Solicitações"
+3. Visualize solicitações em 3 categorias:
+   - **Pendentes**: Aguardando aprovação
+   - **Aprovadas**: Já processadas
+   - **Rejeitadas**: Negadas com motivo
+4. Para aprovar:
+   - Clique em "Aprovar"
+   - Escolha o nível de acesso (Funcionário, Gestor ou Admin)
+   - Confirme
+5. Para rejeitar:
+   - Clique em "Rejeitar"
+   - Informe o motivo
+   - Confirme
+
+### Níveis de Acesso
+
+- **Funcionário**: Acesso ao checklist de tarefas
+- **Gestor**: Gerenciamento de setores e tarefas (futuro)
+- **Administrador**: Acesso total ao sistema
+
+Documentação completa em: [REGISTRO_USUARIOS.md](./REGISTRO_USUARIOS.md)
+
 ## 🔐 Segurança
 
 - ✅ Senhas hasheadas com bcrypt (10 rounds)
 - ✅ Autenticação JWT com tokens de 7 dias
 - ✅ Middleware de autenticação em todas as rotas protegidas
-- ✅ Middleware de autorização admin
+- ✅ Middleware de autorização admin e gestor
 - ✅ Validação de schemas com Zod
 - ✅ Proteção contra SQL injection (prepared statements)
+- ✅ **NOVO:** Validação de status de conta (active, pending, rejected)
+- ✅ **NOVO:** Sistema de aprovação para novos usuários
 
 ## 📱 Responsividade
 
