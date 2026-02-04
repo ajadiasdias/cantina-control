@@ -1,5 +1,8 @@
 // Registration and Access Management Functions
 
+// API Configuration (same as app.js)
+const API_BASE = '/api';
+
 // Close modal helper
 function closeModal() {
   const modal = document.querySelector('.fixed.inset-0');
@@ -38,21 +41,28 @@ async function checkRegistrationStatus(email) {
 
 // Load Registration Requests (Admin only)
 async function loadRegistrationRequests(status = 'pending') {
-  const requests = await apiCall(`/registrations?status=${status}`);
-  
   const container = document.getElementById('registration-requests-list');
   
-  if (!requests || requests.length === 0) {
-    container.innerHTML = `
-      <div class="text-center py-12 text-gray-500">
-        <i class="fas fa-inbox text-5xl mb-4"></i>
-        <p>Nenhuma solicitação ${status === 'pending' ? 'pendente' : status === 'approved' ? 'aprovada' : 'rejeitada'}</p>
-      </div>
-    `;
+  // Check if container exists
+  if (!container) {
+    console.error('Container registration-requests-list not found');
     return;
   }
+  
+  try {
+    const requests = await apiCall(`/registrations?status=${status}`);
+    
+    if (!requests || requests.length === 0) {
+      container.innerHTML = `
+        <div class="text-center py-12 text-gray-500">
+          <i class="fas fa-inbox text-5xl mb-4"></i>
+          <p>Nenhuma solicitação ${status === 'pending' ? 'pendente' : status === 'approved' ? 'aprovada' : 'rejeitada'}</p>
+        </div>
+      `;
+      return;
+    }
 
-  container.innerHTML = requests.map(req => `
+    container.innerHTML = requests.map(req => `
     <div class="bg-white rounded-lg shadow p-6 hover:shadow-lg transition">
       <div class="flex items-start justify-between mb-4">
         <div class="flex-1">
@@ -89,6 +99,16 @@ async function loadRegistrationRequests(status = 'pending') {
       </div>
     </div>
   `).join('');
+  } catch (error) {
+    console.error('Error loading registration requests:', error);
+    container.innerHTML = `
+      <div class="text-center py-12 text-red-500">
+        <i class="fas fa-exclamation-triangle text-5xl mb-4"></i>
+        <p>Erro ao carregar solicitações</p>
+        <p class="text-sm mt-2">${error.message}</p>
+      </div>
+    `;
+  }
 }
 
 // Approve Registration
