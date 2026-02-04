@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste de Login - Cantina Control</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen flex items-center justify-center p-4">
+    <div class="max-w-md w-full">
+        <div class="bg-white rounded-2xl shadow-2xl p-8">
+            <div class="text-center mb-8">
+                <h1 class="text-3xl font-bold text-gray-800 mb-2">
+                    🍽️ Teste de Login
+                </h1>
+                <p class="text-gray-600">Diagnóstico do Sistema</p>
+            </div>
+
+            <div id="status" class="mb-4 p-4 rounded-lg bg-blue-50 text-blue-800 text-sm">
+                Aguardando login...
+            </div>
+
+            <form id="test-login-form" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Email
+                    </label>
+                    <input 
+                        type="email" 
+                        id="test-email"
+                        value="admin@cantina.com"
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        required
+                    >
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Senha
+                    </label>
+                    <input 
+                        type="password" 
+                        id="test-password"
+                        value="admin123"
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        required
+                    >
+                </div>
+
+                <button 
+                    type="submit"
+                    class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3 px-4 rounded-lg font-semibold hover:from-blue-700 hover:to-indigo-700 transition-all duration-200"
+                >
+                    Testar Login
+                </button>
+            </form>
+
+            <div id="logs" class="mt-6 p-4 bg-gray-50 rounded-lg max-h-96 overflow-y-auto">
+                <h3 class="font-semibold text-gray-700 mb-2">Logs:</h3>
+                <div id="log-content" class="text-xs text-gray-600 space-y-1 font-mono"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = '/api';
+        
+        function addLog(message, type = 'info') {
+            const logContent = document.getElementById('log-content');
+            const timestamp = new Date().toLocaleTimeString();
+            const colors = {
+                info: 'text-blue-600',
+                success: 'text-green-600',
+                error: 'text-red-600',
+                warning: 'text-yellow-600'
+            };
+            
+            const logEntry = document.createElement('div');
+            logEntry.className = colors[type] || colors.info;
+            logEntry.textContent = `[${timestamp}] ${message}`;
+            logContent.appendChild(logEntry);
+            logContent.scrollTop = logContent.scrollHeight;
+        }
+
+        function updateStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('status');
+            const colors = {
+                info: 'bg-blue-50 text-blue-800',
+                success: 'bg-green-50 text-green-800',
+                error: 'bg-red-50 text-red-800',
+                warning: 'bg-yellow-50 text-yellow-800'
+            };
+            
+            statusDiv.className = `mb-4 p-4 rounded-lg ${colors[type]} text-sm`;
+            statusDiv.textContent = message;
+        }
+
+        async function testLogin(email, password) {
+            addLog('🚀 Iniciando teste de login...', 'info');
+            addLog(`📧 Email: ${email}`, 'info');
+            addLog(`🔑 Senha: ${'*'.repeat(password.length)}`, 'info');
+            
+            try {
+                addLog('📡 Montando requisição...', 'info');
+                const url = `${API_BASE}/auth/login`;
+                addLog(`🌐 URL: ${url}`, 'info');
+                
+                const body = JSON.stringify({ email, password });
+                addLog(`📦 Body: ${body}`, 'info');
+                
+                const options = {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: body
+                };
+                addLog(`⚙️ Opções: ${JSON.stringify(options, null, 2)}`, 'info');
+                
+                addLog('🌐 Enviando requisição...', 'warning');
+                updateStatus('Enviando requisição...', 'warning');
+                
+                const response = await fetch(url, options);
+                
+                addLog(`📥 Resposta recebida: Status ${response.status}`, response.ok ? 'success' : 'error');
+                addLog(`📊 Headers: ${JSON.stringify([...response.headers.entries()])}`, 'info');
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    addLog(`❌ Erro na resposta: ${errorText}`, 'error');
+                    updateStatus(`Erro: ${response.status} - ${errorText}`, 'error');
+                    return;
+                }
+                
+                const data = await response.json();
+                addLog(`✅ Dados recebidos: ${JSON.stringify(data, null, 2)}`, 'success');
+                
+                if (data.token) {
+                    addLog(`🎟️ Token: ${data.token.substring(0, 20)}...`, 'success');
+                    addLog(`👤 Usuário: ${JSON.stringify(data.user)}`, 'success');
+                    updateStatus(`✅ Login bem-sucedido! Usuário: ${data.user.name} (${data.user.role})`, 'success');
+                    
+                    // Testar se consegue acessar dados do usuário
+                    addLog('🔍 Testando acesso com token...', 'info');
+                    const meResponse = await fetch(`${API_BASE}/users/me`, {
+                        headers: {
+                            'Authorization': `Bearer ${data.token}`
+                        }
+                    });
+                    
+                    if (meResponse.ok) {
+                        const meData = await meResponse.json();
+                        addLog(`✅ Token válido! Dados: ${JSON.stringify(meData)}`, 'success');
+                    } else {
+                        addLog(`⚠️ Token inválido ou expirado`, 'warning');
+                    }
+                } else {
+                    addLog('⚠️ Resposta sem token!', 'warning');
+                    updateStatus('Resposta sem token!', 'warning');
+                }
+                
+            } catch (error) {
+                addLog(`❌ Erro fatal: ${error.message}`, 'error');
+                addLog(`📋 Stack: ${error.stack}`, 'error');
+                updateStatus(`❌ Erro: ${error.message}`, 'error');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            addLog('✅ DOM carregado', 'success');
+            addLog(`🌍 URL atual: ${window.location.href}`, 'info');
+            addLog(`🔧 API Base: ${API_BASE}`, 'info');
+            
+            const form = document.getElementById('test-login-form');
+            addLog('✅ Formulário encontrado', 'success');
+            
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                addLog('🛑 Evento submit interceptado', 'success');
+                
+                const email = document.getElementById('test-email').value;
+                const password = document.getElementById('test-password').value;
+                
+                await testLogin(email, password);
+            });
+            
+            addLog('✅ Event listener registrado', 'success');
+            addLog('🎯 Sistema pronto para teste!', 'success');
+            updateStatus('✅ Sistema pronto! Clique em "Testar Login"', 'success');
+        });
+    </script>
+</body>
+</html>
