@@ -447,32 +447,8 @@ app.get('/', (c) => {
             </div>
         </div>
 
-        <script>
-        // Prevent default form submission inline
-        (function() {
-            // Wait for DOM to be ready
-            if (document.readyState === 'loading') {
-                document.addEventListener('DOMContentLoaded', initLoginForm);
-            } else {
-                initLoginForm();
-            }
-            
-            function initLoginForm() {
-                const loginForm = document.getElementById('login-form');
-                if (loginForm) {
-                    loginForm.addEventListener('submit', function(e) {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        console.log('Login form submitted - prevented default');
-                        return false;
-                    });
-                    console.log('Login form protection initialized');
-                }
-            }
-        })();
-        </script>
-        <script src="/static/registration.js"></script>
-        <script src="/static/app.js"></script>
+        <!-- NOVO SCRIPT PRINCIPAL - Versão Limpa -->
+        <script src="/static/main.js"></script>
     </body>
     </html>
   `);
