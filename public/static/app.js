@@ -1,6 +1,10 @@
 // API Configuration
 const API_BASE = '/api';
 
+// Debug log
+console.log('🚀 Cantina Control - app.js carregado!');
+console.log('📍 API_BASE:', API_BASE);
+
 // State Management
 const state = {
   token: localStorage.getItem('token'),
@@ -53,14 +57,23 @@ async function apiCall(endpoint, options = {}) {
 
 // Authentication
 async function login(email, password) {
+  console.log('🔐 Função login() chamada');
+  console.log('📧 Email:', email);
+  console.log('🌐 Fazendo POST para:', `${API_BASE}/auth/login`);
+  
   const data = await apiCall('/auth/login', {
     method: 'POST',
     body: JSON.stringify({ email, password }),
   });
 
+  console.log('📦 Response recebida:', data);
+  
   state.token = data.token;
   state.user = data.user;
   localStorage.setItem('token', data.token);
+  
+  console.log('✅ Token salvo no localStorage');
+  console.log('👤 Usuário:', state.user);
   
   return data;
 }
@@ -471,16 +484,38 @@ async function loadAdminReports() {
 
 // Event Listeners
 document.addEventListener('DOMContentLoaded', async () => {
+  console.log('✅ DOMContentLoaded disparado');
+  
   // Login form
-  document.getElementById('login-form').addEventListener('submit', async (e) => {
+  const loginForm = document.getElementById('login-form');
+  console.log('🔍 Procurando formulário login-form:', loginForm);
+  
+  if (!loginForm) {
+    console.error('❌ Formulário login-form NÃO encontrado!');
+    return;
+  }
+  
+  console.log('✅ Formulário login-form encontrado, adicionando event listener');
+  
+  loginForm.addEventListener('submit', async (e) => {
+    console.log('🎯 Submit do formulário disparado!');
     e.preventDefault();
+    e.stopPropagation();
+    console.log('🛑 preventDefault() chamado');
+    
     const formData = new FormData(e.target);
     const email = formData.get('email');
     const password = formData.get('password');
+    
+    console.log('📧 Email:', email);
+    console.log('🔑 Password:', password ? '***' : 'vazio');
 
     try {
+      console.log('⏳ Iniciando login...');
       showLoading();
       await login(email, password);
+      
+      console.log('✅ Login bem-sucedido!');
       
       // Show app
       document.getElementById('login-screen').classList.add('hidden');
@@ -496,12 +531,15 @@ document.addEventListener('DOMContentLoaded', async () => {
       // Load dashboard
       await loadDashboard();
     } catch (error) {
+      console.error('❌ Erro no login:', error);
       document.getElementById('login-error').textContent = error.message;
       document.getElementById('login-error').classList.remove('hidden');
     } finally {
       hideLoading();
     }
   });
+  
+  console.log('✅ Event listener do login-form adicionado com sucesso');
 
   // Logout button
   document.getElementById('logout-btn').addEventListener('click', logout);
