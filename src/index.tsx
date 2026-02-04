@@ -93,16 +93,16 @@ app.get('/', (c) => {
                     <p class="mt-2 text-gray-600">Gerenciamento de Tarefas para Cantinas</p>
                 </div>
                 <div class="bg-white p-8 rounded-xl shadow-lg">
-                    <form id="login-form" class="space-y-6">
+                    <form id="login-form" class="space-y-6" onsubmit="return false;">
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">E-mail</label>
-                            <input type="email" name="email" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent" placeholder="seu@email.com">
+                            <input type="email" id="login-email" name="email" required autocomplete="email" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent" placeholder="seu@email.com">
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">Senha</label>
-                            <input type="password" name="password" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent" placeholder="••••••••">
+                            <input type="password" id="login-password" name="password" required autocomplete="current-password" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent" placeholder="••••••••">
                         </div>
-                        <button type="submit" class="w-full gradient-bg text-white py-3 rounded-lg font-semibold hover:opacity-90 transition">
+                        <button type="submit" id="login-submit-btn" class="w-full gradient-bg text-white py-3 rounded-lg font-semibold hover:opacity-90 transition">
                             <i class="fas fa-sign-in-alt mr-2"></i>Entrar
                         </button>
                         <div id="login-error" class="hidden text-red-600 text-sm text-center"></div>
@@ -447,6 +447,30 @@ app.get('/', (c) => {
             </div>
         </div>
 
+        <script>
+        // Prevent default form submission inline
+        (function() {
+            // Wait for DOM to be ready
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', initLoginForm);
+            } else {
+                initLoginForm();
+            }
+            
+            function initLoginForm() {
+                const loginForm = document.getElementById('login-form');
+                if (loginForm) {
+                    loginForm.addEventListener('submit', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        console.log('Login form submitted - prevented default');
+                        return false;
+                    });
+                    console.log('Login form protection initialized');
+                }
+            }
+        })();
+        </script>
         <script src="/static/registration.js"></script>
         <script src="/static/app.js"></script>
     </body>
