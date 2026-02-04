@@ -447,8 +447,9 @@ app.get('/', (c) => {
             </div>
         </div>
 
-        <!-- NOVO SCRIPT PRINCIPAL - Versão Limpa -->
+        <!-- SCRIPTS PRINCIPAIS -->
         <script src="/static/main.js"></script>
+        <script src="/static/admin.js"></script>
     </body>
     </html>
   `);

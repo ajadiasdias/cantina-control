@@ -302,15 +302,15 @@ function backToDashboard() {
 function showAdminPanel() {
   console.log('[showAdminPanel] Mostrando painel admin');
   showView('admin');
-  loadAdminSectors();
+  // Carregar a aba de setores por padrão
+  if (typeof showAdminTab === 'function') {
+    showAdminTab('sectors');
+  }
 }
 
 // ============================================
-// ADMIN - Placeholder functions
+// ADMIN - As funções admin estão em admin.js
 // ============================================
-function loadAdminSectors() {
-  console.log('[loadAdminSectors] TODO: Carregar setores admin');
-}
 
 // ============================================
 // REGISTRO
