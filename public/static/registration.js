@@ -1,5 +1,13 @@
 // Registration and Access Management Functions
 
+// Close modal helper
+function closeModal() {
+  const modal = document.querySelector('.fixed.inset-0');
+  if (modal) {
+    modal.remove();
+  }
+}
+
 // Request Access (User Registration)
 async function requestAccess(email, password, name, requestedRole = 'employee') {
   try {
@@ -85,8 +93,7 @@ async function loadRegistrationRequests(status = 'pending') {
 
 // Approve Registration
 async function approveRegistration(requestId) {
-  const modal = createModal(`
-    <h3 class="text-xl font-bold mb-4">Aprovar Solicitação</h3>
+  const modalContent = `
     <p class="text-gray-600 mb-4">Selecione o nível de acesso para este usuário:</p>
     <form id="approve-form" class="space-y-4">
       <div>
@@ -111,7 +118,9 @@ async function approveRegistration(requestId) {
         </button>
       </div>
     </form>
-  `);
+  `;
+  
+  const modal = createModal('Aprovar Solicitação', modalContent);
 
   document.getElementById('approve-form').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -137,8 +146,7 @@ async function approveRegistration(requestId) {
 
 // Reject Registration
 async function rejectRegistration(requestId) {
-  const modal = createModal(`
-    <h3 class="text-xl font-bold mb-4">Rejeitar Solicitação</h3>
+  const modalContent = `
     <p class="text-gray-600 mb-4">Por favor, informe o motivo da rejeição:</p>
     <form id="reject-form" class="space-y-4">
       <div>
@@ -154,7 +162,9 @@ async function rejectRegistration(requestId) {
         </button>
       </div>
     </form>
-  `);
+  `;
+  
+  const modal = createModal('Rejeitar Solicitação', modalContent);
 
   document.getElementById('reject-form').addEventListener('submit', async (e) => {
     e.preventDefault();
