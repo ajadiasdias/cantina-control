@@ -276,11 +276,19 @@ async function showCreateTaskModal() {
   document.getElementById('create-task-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const formData = new FormData(e.target);
-    const data = Object.fromEntries(formData);
+    const rawData = Object.fromEntries(formData);
     
-    // Converter checkboxes
-    data.is_required = data.is_required === '1';
-    data.requires_photo = data.requires_photo === '1';
+    // Converter e validar dados
+    const data = {
+      sector_id: parseInt(rawData.sector_id),
+      type: rawData.type,
+      title: rawData.title,
+      description: rawData.description || undefined,
+      is_required: rawData.is_required === '1',
+      requires_photo: rawData.requires_photo === '1',
+      estimated_time: rawData.estimated_time ? parseInt(rawData.estimated_time) : undefined,
+      order_number: rawData.order_number ? parseInt(rawData.order_number) : 0
+    };
     
     try {
       showLoading();
@@ -371,6 +379,276 @@ function renderAdminUsers(users) {
   `).join('');
 }
 
+function showInviteUserModal() {
+  console.log('[showInviteUserModal] Mostrando modal de convidar usuário');
+  const modal = `
+    <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" id="invite-modal">
+      <div class="bg-white rounded-xl shadow-2xl p-6 max-w-md w-full mx-4">
+        <h3 class="text-xl font-bold text-gray-800 mb-4">
+          <i class="fas fa-user-plus mr-2"></i>Convidar Usuário
+        </h3>
+        <form id="invite-user-form" class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Email</label>
+            <input type="email" name="email" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600" placeholder="usuario@exemplo.com">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Função</label>
+            <select name="role" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600">
+              <option value="employee">Funcionário</option>
+              <option value="manager">Gestor</option>
+              <option value="admin">Administrador</option>
+            </select>
+          </div>
+          <div class="flex space-x-3 pt-4">
+            <button type="button" onclick="closeModal('invite-modal')" class="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-300">
+              Cancelar
+            </button>
+            <button type="submit" class="flex-1 bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-2 rounded-lg hover:opacity-90">
+              Enviar Convite
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  `;
+  
+  document.body.insertAdjacentHTML('beforeend', modal);
+  
+  document.getElementById('invite-user-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const data = Object.fromEntries(formData);
+    
+    try {
+      showLoading();
+      const result = await apiCall('/users/invite', {
+        method: 'POST',
+        body: JSON.stringify(data)
+      });
+      
+      closeModal('invite-modal');
+      
+      // Mostrar modal com link do convite
+      showInviteLinkModal(result.invitation_link);
+      
+    } catch (error) {
+      console.error('[inviteUser] Erro:', error);
+      alert('Erro ao enviar convite: ' + error.message);
+    } finally {
+      hideLoading();
+    }
+  });
+}
+
+function showInviteLinkModal(invitationLink) {
+  const fullLink = `${window.location.origin}${invitationLink}`;
+  const modal = `
+    <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" id="link-modal">
+      <div class="bg-white rounded-xl shadow-2xl p-6 max-w-md w-full mx-4">
+        <h3 class="text-xl font-bold text-gray-800 mb-4">
+          <i class="fas fa-check-circle text-green-500 mr-2"></i>Convite Criado!
+        </h3>
+        <p class="text-gray-600 mb-4">Compartilhe este link com o usuário:</p>
+        <div class="bg-gray-50 p-3 rounded-lg mb-4">
+          <input type="text" value="${fullLink}" readonly class="w-full bg-transparent text-sm" onclick="this.select()">
+        </div>
+        <p class="text-xs text-gray-500 mb-4">Válido por 7 dias</p>
+        <button onclick="closeModal('link-modal'); loadAdminUsers();" class="w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-2 rounded-lg hover:opacity-90">
+          OK
+        </button>
+      </div>
+    </div>
+  `;
+  document.body.insertAdjacentHTML('beforeend', modal);
+}
+
+// ============================================
+// ADMIN - SOLICITAÇÕES DE REGISTRO
+// ============================================
+function openRegistrationRequests() {
+  console.log('[openRegistrationRequests] Abrindo solicitações');
+  showView('admin-registrations');
+  loadRegistrationRequests();
+}
+
+async function loadRegistrationRequests(status = 'pending') {
+  console.log('[loadRegistrationRequests] Carregando solicitações:', status);
+  try {
+    showLoading();
+    const requests = await apiCall(`/registrations?status=${status}`);
+    console.log('[loadRegistrationRequests] Solicitações carregadas:', requests.length);
+    renderRegistrationRequests(requests, status);
+  } catch (error) {
+    console.error('[loadRegistrationRequests] Erro:', error);
+    alert('Erro ao carregar solicitações: ' + error.message);
+  } finally {
+    hideLoading();
+  }
+}
+
+function renderRegistrationRequests(requests, status) {
+  console.log('[renderRegistrationRequests] Renderizando solicitações:', requests.length);
+  const container = document.getElementById('registration-requests-list');
+  if (!container) {
+    console.error('[renderRegistrationRequests] Container não encontrado!');
+    return;
+  }
+  
+  if (requests.length === 0) {
+    const messages = {
+      pending: 'Nenhuma solicitação pendente',
+      approved: 'Nenhuma solicitação aprovada',
+      rejected: 'Nenhuma solicitação rejeitada'
+    };
+    container.innerHTML = `<p class="text-gray-500 text-center">${messages[status] || 'Nenhuma solicitação'}</p>`;
+    return;
+  }
+  
+  container.innerHTML = requests.map(req => `
+    <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+      <div class="flex items-start justify-between">
+        <div class="flex-1">
+          <h4 class="font-semibold text-gray-800">${req.name}</h4>
+          <p class="text-sm text-gray-600">${req.email}</p>
+          <span class="text-xs px-2 py-1 rounded ${
+            req.requested_role === 'admin' ? 'bg-red-100 text-red-700' : 
+            req.requested_role === 'manager' ? 'bg-blue-100 text-blue-700' : 
+            'bg-gray-100 text-gray-700'
+          }">
+            Solicitou: ${req.requested_role === 'admin' ? 'Administrador' : req.requested_role === 'manager' ? 'Gestor' : 'Funcionário'}
+          </span>
+          <p class="text-xs text-gray-500 mt-2">
+            ${new Date(req.created_at).toLocaleString('pt-BR')}
+          </p>
+        </div>
+        ${status === 'pending' ? `
+          <div class="flex items-center space-x-2">
+            <button onclick="approveRequest(${req.id})" class="text-green-600 hover:text-green-700 px-3 py-1 rounded border border-green-600 hover:bg-green-50">
+              <i class="fas fa-check mr-1"></i>Aprovar
+            </button>
+            <button onclick="rejectRequest(${req.id})" class="text-red-600 hover:text-red-700 px-3 py-1 rounded border border-red-600 hover:bg-red-50">
+              <i class="fas fa-times mr-1"></i>Rejeitar
+            </button>
+          </div>
+        ` : `
+          <span class="text-sm ${status === 'approved' ? 'text-green-600' : 'text-red-600'}">
+            ${status === 'approved' ? 'Aprovado' : 'Rejeitado'}
+          </span>
+        `}
+      </div>
+    </div>
+  `).join('');
+}
+
+async function approveRequest(requestId) {
+  console.log('[approveRequest] Aprovando solicitação:', requestId);
+  
+  const modal = `
+    <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" id="approve-modal">
+      <div class="bg-white rounded-xl shadow-2xl p-6 max-w-md w-full mx-4">
+        <h3 class="text-xl font-bold text-gray-800 mb-4">
+          <i class="fas fa-check-circle text-green-500 mr-2"></i>Aprovar Solicitação
+        </h3>
+        <form id="approve-form" class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Nível de Acesso</label>
+            <select name="approvedRole" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600">
+              <option value="employee">Funcionário</option>
+              <option value="manager">Gestor</option>
+              <option value="admin">Administrador</option>
+            </select>
+          </div>
+          <div class="flex space-x-3 pt-4">
+            <button type="button" onclick="closeModal('approve-modal')" class="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-300">
+              Cancelar
+            </button>
+            <button type="submit" class="flex-1 bg-green-600 text-white py-2 rounded-lg hover:bg-green-700">
+              Aprovar
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  `;
+  
+  document.body.insertAdjacentHTML('beforeend', modal);
+  
+  document.getElementById('approve-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const data = Object.fromEntries(formData);
+    
+    try {
+      showLoading();
+      await apiCall(`/registrations/${requestId}/approve`, {
+        method: 'POST',
+        body: JSON.stringify(data)
+      });
+      closeModal('approve-modal');
+      alert('Solicitação aprovada com sucesso!');
+      loadRegistrationRequests();
+    } catch (error) {
+      console.error('[approveRequest] Erro:', error);
+      alert('Erro ao aprovar solicitação: ' + error.message);
+    } finally {
+      hideLoading();
+    }
+  });
+}
+
+async function rejectRequest(requestId) {
+  console.log('[rejectRequest] Rejeitando solicitação:', requestId);
+  
+  const modal = `
+    <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" id="reject-modal">
+      <div class="bg-white rounded-xl shadow-2xl p-6 max-w-md w-full mx-4">
+        <h3 class="text-xl font-bold text-gray-800 mb-4">
+          <i class="fas fa-times-circle text-red-500 mr-2"></i>Rejeitar Solicitação
+        </h3>
+        <form id="reject-form" class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Motivo da Rejeição</label>
+            <textarea name="reason" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600" rows="3" placeholder="Explique o motivo da rejeição"></textarea>
+          </div>
+          <div class="flex space-x-3 pt-4">
+            <button type="button" onclick="closeModal('reject-modal')" class="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-300">
+              Cancelar
+            </button>
+            <button type="submit" class="flex-1 bg-red-600 text-white py-2 rounded-lg hover:bg-red-700">
+              Rejeitar
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  `;
+  
+  document.body.insertAdjacentHTML('beforeend', modal);
+  
+  document.getElementById('reject-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const data = Object.fromEntries(formData);
+    
+    try {
+      showLoading();
+      await apiCall(`/registrations/${requestId}/reject`, {
+        method: 'POST',
+        body: JSON.stringify(data)
+      });
+      closeModal('reject-modal');
+      alert('Solicitação rejeitada.');
+      loadRegistrationRequests();
+    } catch (error) {
+      console.error('[rejectRequest] Erro:', error);
+      alert('Erro ao rejeitar solicitação: ' + error.message);
+    } finally {
+      hideLoading();
+    }
+  });
+}
+
 // ============================================
 // ADMIN - NAVEGAÇÃO DE ABAS
 // ============================================
@@ -442,6 +720,37 @@ document.addEventListener('DOMContentLoaded', () => {
     addTaskBtn.addEventListener('click', showCreateTaskModal);
   }
   
+  // Botão convidar usuário
+  const inviteUserBtn = document.getElementById('invite-user-btn');
+  if (inviteUserBtn) {
+    inviteUserBtn.addEventListener('click', showInviteUserModal);
+  }
+  
+  // Botão voltar das solicitações
+  const backFromRegistrationsBtn = document.getElementById('back-from-registrations-btn');
+  if (backFromRegistrationsBtn) {
+    backFromRegistrationsBtn.addEventListener('click', () => {
+      showView('admin');
+      showAdminTab('users');
+    });
+  }
+  
+  // Tabs de status das solicitações
+  document.querySelectorAll('[data-status-tab]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const status = btn.getAttribute('data-status-tab');
+      loadRegistrationRequests(status);
+      
+      // Atualizar tabs ativas
+      document.querySelectorAll('[data-status-tab]').forEach(t => {
+        t.classList.remove('border-purple-600', 'text-purple-600');
+        t.classList.add('border-transparent', 'text-gray-600');
+      });
+      btn.classList.remove('border-transparent', 'text-gray-600');
+      btn.classList.add('border-purple-600', 'text-purple-600');
+    });
+  });
+  
   console.log('[ADMIN.JS] Event listeners configurados');
 });
 
@@ -461,5 +770,10 @@ window.loadAdminTasks = loadAdminTasks;
 window.showCreateTaskModal = showCreateTaskModal;
 window.deleteTask = deleteTask;
 window.loadAdminUsers = loadAdminUsers;
+window.showInviteUserModal = showInviteUserModal;
+window.openRegistrationRequests = openRegistrationRequests;
+window.loadRegistrationRequests = loadRegistrationRequests;
+window.approveRequest = approveRequest;
+window.rejectRequest = rejectRequest;
 window.showAdminTab = showAdminTab;
 window.closeModal = closeModal;
